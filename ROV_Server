@@ -1,0 +1,17 @@
+#server code runs on the Rasp Pi, which is connected to laptop thru ethernet cable
+from xmlrpc.server import SimpleXMLRPCServer
+#<include adafruit servo library and initilization>
+
+def fire_motor(motorID, PWM):
+    return 'Firing motor ' + str(motorID) + ' @ ' + str(PWM)
+    #<add adafruit servo call here>
+
+# set up the server
+server = SimpleXMLRPCServer(("192.168.0.17", 9000)) #IP address of raspberry pi for DIRECT CONNECTIONS
+
+# register our functions
+server.register_function(fire_motor)
+
+# Run the server's main loop
+server.serve_forever()
+
