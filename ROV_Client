@@ -1,4 +1,4 @@
-#***********************************NOTES/TIPS************************************
+#***********************************NOTES/TIPS************************************#
 #server code runs on a laptop, which is connected to Rasp Pi thru ethernet cable
 #make sure to click on black box that pops up when program runs, otherwise keystrokes will not register
 #to resolve connection issues, restarting the Rasp Pi and/or laptop usually helps
