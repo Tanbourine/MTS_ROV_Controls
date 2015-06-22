@@ -1,0 +1,123 @@
+#***********************************NOTES/TIPS************************************
+#server code runs on a laptop, which is connected to Rasp Pi thru ethernet cable
+#make sure to click on black box that pops up when program runs, otherwise keystrokes will not register
+#to resolve connection issues, restarting the Rasp Pi and/or laptop usually helps
+
+from pygame.locals import *
+#from time import sleep
+import xmlrpc.client
+import pygame
+import sys
+
+#initialize Rasp Pi server and pygame
+s = xmlrpc.client.ServerProxy('http://169.254.0.2:9000') #IP address of raspberry pi for DIRECT CONNECTIONS, port 9000
+pygame.init()   
+
+#draw screen
+screen = pygame.display.set_mode((640, 480))    #set screen resolution
+pygame.display.set_caption('CLICK ME!!!')
+
+#define motor object
+class Motor:
+    def __init__(self, motorID, neutral_val, med_val, max_val):
+        self.ID = motorID
+        self.neutral_throttle = neutral_val
+        self.med_throttle = med_val
+        self.max_throttle = max_val
+        
+#define direction object
+class Direction:
+    def __init__(self, name,  motorArr):
+        self.dirName = name
+        self.motorIDs = motorArr
+        #self.PWMval = PWM
+
+# create 6 motor objects: (motor ID, neutral PWM, forward PWM, max PWM)
+# *********ADJUST 2ND, 3RD, AND 4TH VALUES TO TRIM ROV************
+M1 = Motor(1, 375, 488, 600)
+M2 = Motor(2, 375, 488, 600)
+M3 = Motor(3, 375, 488, 600)
+M4 = Motor(4, 375, 488, 600)
+M5 = Motor(5, 375, 488, 600)
+M6 = Motor(6, 375, 488, 600)
+
+# create arrays of motor objects, which are part of the direction objects
+forw_motors = [M1, M2]
+back_motors = [M3, M4]
+move_R_motors = [M1, M4]
+move_L_motors = [M2, M3]
+turn_R_motors = [M1, M3]
+turn_L_motors = [M2, M4]
+desc_motors = [M5, M6]
+all_motors_off = [M1, M2, M3, M4, M5, M6]
+
+#create direction objects that label array of motors objects
+forward = Direction("forward", forw_motors)
+backward = Direction("backward", back_motors)
+move_R = Direction("move right", move_R_motors)
+move_L = Direction("move left", move_L_motors)
+turn_R = Direction("turn right", turn_R_motors)
+turn_L = Direction("turn left", turn_L_motors)
+descend = Direction("descend", desc_motors)
+all_off = Direction("all off", all_motors_off)
+
+#this function sends motor ID and PWM value to Rasp Pi server
+def send_PWM(direction):
+    for x in range (0, len(direction.motorIDs)):
+        #print(direction.motorIDs[x].ID)
+        if direction.dirName == "all off":
+            print(s.fire_motor(direction.motorIDs[x].ID, direction.motorIDs[x].neutral_throttle))
+        elif max_overdrive:
+            #print(direction[x].max_throttle)
+            print(s.fire_motor(direction.motorIDs[x].ID, direction.motorIDs[x].max_throttle))
+        else:
+            #print(direction[x].med_throttle)
+            print(s.fire_motor(direction.motorIDs[x].ID, direction.motorIDs[x].med_throttle))
+              
+max_overdrive = False           # set to true by pressing shift; speeds up motors
+dir_pressed = all_off              # set initial direction to all off
+
+#main loop
+while True:
+    #print(max_overdrive)
+    for event in pygame.event.get():
+        if event.type == KEYUP:
+            if event.key == K_LSHIFT:
+                max_overdrive = False
+        #check if all four wasd keys are released
+            elif not(pygame.key.get_pressed()[K_w] and pygame.key.get_pressed()[K_a] and pygame.key.get_pressed()[K_s] and pygame.key.get_pressed()[K_d] and pygame.key.get_pressed()[K_e] and pygame.key.get_pressed()[K_q] and pygame.key.get_pressed()[K_SPACE]):
+                dir_pressed = all_off
+            #send chosen direction to server  
+            print(dir_pressed.dirName)
+            send_PWM(dir_pressed)
+                
+        elif event.type == KEYDOWN:
+            if event.key == K_ESCAPE:     #press ESC to exit program
+                pygame.display.quit()
+                print("=======Program aborted=======")  
+                sys.exit()
+            #assign keys to direction
+            elif event.key == K_w:
+                dir_pressed = forward
+            elif event.key == K_s:
+                dir_pressed = backward
+            elif event.key == K_d:
+                dir_pressed = move_R
+            elif event.key == K_a:
+                dir_pressed = move_L
+            elif event.key == K_SPACE:
+                dir_pressed = descend
+            elif event.key == K_e:
+                dir_pressed = turn_R
+            elif event.key == K_q:
+                dir_pressed = turn_L
+            #shift pressed with w/a/s/d will speed up ROV
+            if event.key == K_LSHIFT and (pygame.key.get_pressed()[K_w] or pygame.key.get_pressed()[K_a] or pygame.key.get_pressed()[K_s] or pygame.key.get_pressed()[K_d] or pygame.key.get_pressed()[K_e] or pygame.key.get_pressed()[K_q] or pygame.key.get_pressed()[K_SPACE]):       
+                max_overdrive = True 
+            #send chosen direction to server
+            print(dir_pressed.dirName)
+            send_PWM(dir_pressed)
+
+                
+
+
